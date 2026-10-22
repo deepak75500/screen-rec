@@ -32,8 +32,7 @@ from google.auth.transport.requests import Request as GoogleAuthRequest
 import os
 from functools import lru_cache
 
-from cryptography.fernet import Fernet
-from supabase import create_client, Client
+
 
 
 
