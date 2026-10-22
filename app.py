@@ -54,16 +54,32 @@ app = Flask(__name__)
 
 import os
 
+from flask import Flask, request
 
-from workers import env
+def get_worker_secret(name: str) -> str:
+    worker_env = request.environ.get("workers.env")
 
-GOOGLE_CLIENT_ID = str(env.GOOGLE_CLIENT_ID).strip()
-GOOGLE_CLIENT_SECRET = str(env.GOOGLE_CLIENT_SECRET).strip()
-GOOGLE_REFRESH_TOKEN = str(env.GOOGLE_REFRESH_TOKEN).strip()
-GOOGLE_DRIVE_FOLDER_ID = str(
-    getattr(env, "GOOGLE_DRIVE_FOLDER_ID", "") or ""
-).strip()
+    if worker_env is None:
+        raise RuntimeError(
+            "Cloudflare Worker bindings unavailable. "
+            "Ensure the app runs through workers.wsgi.entrypoint(app)."
+        )
 
+    value = getattr(worker_env, name, None)
+
+    if not value:
+        raise RuntimeError(f"Missing Cloudflare Worker secret: {name}")
+
+    return str(value).strip()
+
+
+def get_google_config():
+    return {
+        "GOOGLE_CLIENT_ID": get_worker_secret("GOOGLE_CLIENT_ID"),
+        "GOOGLE_CLIENT_SECRET": get_worker_secret("GOOGLE_CLIENT_SECRET"),
+        "GOOGLE_REFRESH_TOKEN": get_worker_secret("GOOGLE_REFRESH_TOKEN"),
+        "GOOGLE_DRIVE_FOLDER_ID": get_worker_secret("GOOGLE_DRIVE_FOLDER_ID"),
+    }
 DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file"
 DRIVE_UPLOAD_INIT_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable"
 DRIVE_TOKEN_URI = "https://oauth2.googleapis.com/token"
